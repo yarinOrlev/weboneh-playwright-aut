@@ -1,0 +1,9 @@
+node_modules/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/authenticate.ts
+/LoginValues.ts
+/auth/
+.env
+/blob-report/

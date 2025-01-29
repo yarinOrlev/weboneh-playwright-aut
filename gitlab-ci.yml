@@ -1,0 +1,70 @@
+default:
+    cache:
+        key:
+            files:
+                - package.json
+                - package-lock.json
+        paths:
+            - node_modules
+
+stages:
+    - playwright-setup
+    - playwright-tests
+    - playwright-report
+
+
+playwright-setup:
+    stage: playwright-setup
+    image: mcr.microsoft.com/playwright:v1.48.0-jammy
+    parallel:
+        matrix:
+            - SHARD_INDEX: [1, 2, 3, 4, 5, 6, 7, 8]
+              SHARD_TOTAL: 8
+    before_script:
+        - echo "Installing dependencies..."
+        - npm install -D @playwright/test
+        - npm ci
+    script:
+        - npx playwright test --project="setup" --shard=$SHARD_INDEX/$SHARD_TOTAL
+    artifacts:
+        paths:
+            - auth
+        when: always
+        expire_in: 1 days
+
+playwright-tests:
+    stage: playwright-tests
+    needs: [playwright-setup]
+    image: mcr.microsoft.com/playwright:v1.48.0-jammy
+    parallel:
+        matrix:
+            - SHARD_INDEX: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+              SHARD_TOTAL: 12
+    before_script:
+        - echo "Installing dependencies..."
+        - npm install -D @playwright/test
+        - npm ci
+    script:
+        - npx playwright test --project="WebonehAutPlaywright" --shard=$SHARD_INDEX/$SHARD_TOTAL
+    allow_failure: true
+    artifacts:
+        paths:
+            - blob-report
+        when: always
+        expire_in: 1 day
+
+assemble-report:
+    stage: playwright-report
+    needs: [playwright-tests]
+    image: mcr.microsoft.com/playwright:v1.48.0-jammy
+    before_script:
+        - echo "Installing dependencies..."
+        - npm install -D @playwright/test
+        - npm ci
+    script:
+        - npx playwright merge-reports --reporter=html ./blob-report
+    artifacts:
+        when: always
+        paths:
+            - playwright-report
+        expire_in: 1 days
